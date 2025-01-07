@@ -1,5 +1,4 @@
 import streamlit as st
-import webbrowser
 import time
 
 def main():
@@ -9,30 +8,45 @@ def main():
     # Text area for links
     links_text = st.text_area("Links", height=200)
     
-    # Delay slider to prevent browser from blocking popups
-    delay = st.slider("Delay between opening links (seconds)", 0.0, 2.0, 0.5)
-    
-    if st.button("Open Links"):
+    if st.button("Open All Links"):
         # Split the text into individual links
         links = [link.strip() for link in links_text.split('\n') if link.strip()]
         
         if links:
-            st.write(f"Opening {len(links)} links...")
-            progress_bar = st.progress(0)
-            
+            # Create hidden links and add auto-click JavaScript
             for i, link in enumerate(links):
-                # Add http:// if no protocol specified
                 if not link.startswith(('http://', 'https://')):
                     link = 'http://' + link
                 
-                webbrowser.open(link, new=2)  # new=2 opens in new tab
-                progress = (i + 1) / len(links)
-                progress_bar.progress(progress)
-                time.sleep(delay)
-                
-            st.success("All links opened!")
+                # Create a hidden link with a unique ID
+                st.markdown(f'<a id="link{i}" href="{link}" target="_blank" style="display:none">{link}</a>', unsafe_allow_html=True)
+            
+            # Add JavaScript to auto-click all links
+            js = """
+            <script>
+                function openLinks() {
+                    let links = document.querySelectorAll('a[id^="link"]');
+                    links.forEach(link => {
+                        setTimeout(() => {
+                            link.click();
+                        }, 100);  // Small delay between clicks to help browser handle them
+                    });
+                }
+                // Execute after a brief delay to ensure all links are rendered
+                setTimeout(openLinks, 500);
+            </script>
+            """
+            st.components.v1.html(js, height=0)
+            
+            st.success(f"Opening {len(links)} links...")
+            
         else:
             st.warning("Please paste some links first!")
+
+    st.info("""
+    ⚠️ Note: You may need to allow pop-ups in your browser for this to work.
+    If links don't open automatically, check your browser's pop-up settings.
+    """)
 
 if __name__ == "__main__":
     main()
